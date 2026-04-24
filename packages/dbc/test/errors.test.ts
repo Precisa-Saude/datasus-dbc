@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { dbcToDbf, readDbcMetadata } from '../src/dbc.js';
 import type { DbfField } from '../src/dbf.js';
 import { readDbfHeader, readDbfRecords } from '../src/dbf.js';
+import { DEFAULT_MAX_OUTPUT_BYTES, implodeDecompress } from '../src/implode.js';
 
 /**
  * Constrói um header DBF mínimo com 1 campo. O caller pode truncar ou
@@ -221,5 +222,30 @@ describe('decodeField — per-type edge cases', () => {
 describe('dbcToDbf — envelope-level checks', () => {
   it('propagates readDbcMetadata rejection', () => {
     expect(() => dbcToDbf(new Uint8Array(5))).toThrow(/too small/);
+  });
+});
+
+describe('implodeDecompress — allocation guard', () => {
+  it('rejects uncompressedLength acima do cap padrão', () => {
+    expect(() => implodeDecompress(new Uint8Array(16), DEFAULT_MAX_OUTPUT_BYTES + 1)).toThrow(
+      /excede cap/,
+    );
+  });
+
+  it('rejects uncompressedLength negativo', () => {
+    expect(() => implodeDecompress(new Uint8Array(16), -1)).toThrow(/inválido/);
+  });
+
+  it('rejects uncompressedLength não-finito', () => {
+    expect(() => implodeDecompress(new Uint8Array(16), Number.NaN)).toThrow(/inválido/);
+    expect(() => implodeDecompress(new Uint8Array(16), Number.POSITIVE_INFINITY)).toThrow(
+      /inválido/,
+    );
+  });
+
+  it('respeita maxOutputBytes customizado', () => {
+    expect(() => implodeDecompress(new Uint8Array(16), 2000, { maxOutputBytes: 1024 })).toThrow(
+      /excede cap 1024/,
+    );
   });
 });
