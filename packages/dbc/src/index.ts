@@ -22,7 +22,7 @@ export type { DbfField, DbfHeader, DbfRecord, DbfValue, ReadDbfOptions } from '.
 export { readDbfHeader, readDbfRecords } from './dbf.js';
 export { implodeDecompress } from './implode.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '2.0.1';
 
 /**
  * End-to-end: DBC bytes → stream of records as JS objects.
