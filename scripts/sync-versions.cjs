@@ -25,4 +25,19 @@ for (const dir of packageDirs) {
   pkg.version = version;
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
   console.log(`Synced ${pkg.name} → ${version}`);
+
+  // Patch hardcoded VERSION constant in src/index.ts when present, so the
+  // runtime value follows the published version.
+  const indexPath = path.join(packagesDir, dir, 'src', 'index.ts');
+  if (fs.existsSync(indexPath)) {
+    const src = fs.readFileSync(indexPath, 'utf-8');
+    const updated = src.replace(
+      /export const VERSION = '[^']*';/,
+      `export const VERSION = '${version}';`,
+    );
+    if (updated !== src) {
+      fs.writeFileSync(indexPath, updated);
+      console.log(`Synced VERSION constant in ${pkg.name}/src/index.ts → ${version}`);
+    }
+  }
 }
