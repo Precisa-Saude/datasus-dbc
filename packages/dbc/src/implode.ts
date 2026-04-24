@@ -251,14 +251,47 @@ class ImplodeDecoder {
 }
 
 /**
+ * Default cap on the output buffer size (in bytes) allocated by
+ * {@link implodeDecompress}. Prevents an attacker-controlled header
+ * field (e.g. `recordCount * recordSize` in a malformed DBC) from
+ * requesting a multi-GB allocation. Real DATASUS files are well under
+ * this — the largest monthly SIA-PA for SP is ~200 MB uncompressed.
+ * Override via the `maxOutputBytes` option when a legitimate use case
+ * exceeds it.
+ */
+export const DEFAULT_MAX_OUTPUT_BYTES = 500 * 1024 * 1024; // 500 MB
+
+export interface ImplodeDecompressOptions {
+  /** Cap on output buffer allocation. Defaults to {@link DEFAULT_MAX_OUTPUT_BYTES}. */
+  maxOutputBytes?: number;
+}
+
+/**
  * Decompress a PKWARE DCL Implode stream.
  *
  * @param compressed - raw DCL-imploded bytes (no DBC envelope)
  * @param uncompressedLength - expected output size in bytes (must be known up front)
+ * @param options - optional guards (see {@link ImplodeDecompressOptions})
  * @returns decompressed buffer
- * @throws if the input is malformed or the Huffman decode runs off the end
+ * @throws if the input is malformed, the Huffman decode runs off the end,
+ *   or `uncompressedLength` is non-finite, negative, or exceeds the
+ *   configured cap.
  */
-export function implodeDecompress(compressed: Uint8Array, uncompressedLength: number): Uint8Array {
+export function implodeDecompress(
+  compressed: Uint8Array,
+  uncompressedLength: number,
+  options: ImplodeDecompressOptions = {},
+): Uint8Array {
+  const max = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+  if (!Number.isFinite(uncompressedLength) || uncompressedLength < 0) {
+    throw new Error(`implodeDecompress: uncompressedLength inválido (${uncompressedLength})`);
+  }
+  if (uncompressedLength > max) {
+    throw new Error(
+      `implodeDecompress: uncompressedLength ${uncompressedLength} excede cap ${max}. ` +
+        'Cabeçalho DBC suspeito ou ajuste maxOutputBytes.',
+    );
+  }
   const decoder = new ImplodeDecoder(compressed, uncompressedLength);
   return decoder.run();
 }
