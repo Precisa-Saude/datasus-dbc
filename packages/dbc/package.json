@@ -1,6 +1,6 @@
 {
   "name": "@precisa-saude/datasus-dbc",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Decoder TS/JS puro do formato DBC (xBase DBF + PKWARE DCL Implode) usado pelo DATASUS. Browser + Node compatível, zero dependências em runtime.",
   "keywords": [
     "datasus",

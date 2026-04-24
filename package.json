@@ -1,6 +1,6 @@
 {
   "name": "datasus-dbc",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "description": "Monorepo do decoder DBC — PKWARE DCL Implode + xBase DBF em TypeScript puro para microdados DATASUS.",
   "repository": {
