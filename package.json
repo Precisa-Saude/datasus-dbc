@@ -1,7 +1,7 @@
 {
   "name": "@precisa-saude/datasus-dbc",
-  "version": "1.1.0",
-  "description": "Decoder TS/JS puro do formato DBC (xBase DBF + PKWARE DCL Implode) usado pelo DATASUS. Browser + Node compatível.",
+  "version": "2.0.0",
+  "description": "Decoder TS/JS puro do formato DBC (xBase DBF + PKWARE DCL Implode) usado pelo DATASUS. Browser + Node compatível, zero dependências em runtime.",
   "keywords": [
     "datasus",
     "dbc",
@@ -13,12 +13,11 @@
     "brasil",
     "saúde"
   ],
-  "homepage": "https://github.com/Precisa-Saude/datasus-brasil/tree/main/packages/dbc#readme",
-  "bugs": "https://github.com/Precisa-Saude/datasus-brasil/issues",
+  "homepage": "https://github.com/Precisa-Saude/datasus-dbc#readme",
+  "bugs": "https://github.com/Precisa-Saude/datasus-dbc/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Precisa-Saude/datasus-brasil.git",
-    "directory": "packages/dbc"
+    "url": "https://github.com/Precisa-Saude/datasus-dbc.git"
   },
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -43,13 +42,13 @@
   ],
   "scripts": {
     "build": "tsup",
-    "clean": "rm -rf dist .turbo",
-    "lint": "eslint src/ --max-warnings 0",
+    "clean": "rm -rf dist",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
     "tsup": "^8.3.5",
     "typescript": "~5.7.3",
     "vitest": "^2.1.8"
