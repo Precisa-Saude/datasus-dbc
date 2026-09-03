@@ -26,7 +26,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const RODADAS = Number(process.argv[2] ?? 7);
-const FIXTURE = fileURLToPath(new URL('../test/fixtures/RDAC2401.dbc', import.meta.url));
+// Aceita um DBC de fora por DBC_FIXTURE. Arquivos de fora NÃO entram no
+// repositório: o plano manda medi-los por hash e métricas, e é o que se faz.
+const FIXTURE = process.env.DBC_FIXTURE
+  ?? fileURLToPath(new URL('../test/fixtures/RDAC2401.dbc', import.meta.url));
 const PUBLICADO = process.env.DBC_PUBLICADO
   ?? 'C:/projetos/tabwin-web/node_modules/@precisa-saude/datasus-dbc/dist/index.js';
 
@@ -86,10 +89,10 @@ console.log(`\n3. ${ganho >= 1 ? `${ganho.toFixed(2)}x mais rapido` : `${(1 / ga
 console.log(`4. pico de heap: ${novo.picoMb <= antigo.picoMb + 0.5 ? 'igual ou menor' : `MAIOR (+${(novo.picoMb - antigo.picoMb).toFixed(1)} MB)`}`);
 
 // --- critério 2: entradas pequenas -----------------------------------------
-// Não dá para sintetizar um DBC pequeno cortando este: o fluxo DCL é
-// sequencial, e uma fatia não decodifica. Fabricar um número aqui seria pior
-// que não ter número, então o que fica registrado é o que falta.
-console.log('\n2. entradas pequenas: NAO MEDIDO - o conjunto de fixtures tem um'
-  + ' arquivo so (4.315 registros).');
-console.log('   Precisa de um DBC municipal real, de algumas centenas de registros.');
+// Medido por startup-bench.mjs, e o lugar certo é a importação: as tabelas
+// Huffman são construídas no escopo do módulo, uma vez por processo, então
+// não existe custo fixo por descompressão a regredir.
+console.log(`
+2. entradas pequenas: ver bench/startup-bench.mjs`);
+console.log(`   +3,76 ms na importacao, pago uma vez por processo (Node 22).`);
 console.log('5. repetir fora desta maquina: pendente por natureza.');

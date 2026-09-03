@@ -164,6 +164,35 @@ A tolerância também não esconde truncamento: entrada cortada falha antes, em
 `packages/dbc/test/compat-2.0.2.test.ts` trava as duas coisas, para a decisão
 não se perder.
 
+### Medições, em Node 22.23.2 (baseline do repositório)
+
+Contra o 2.0.2 publicado, `dbcToDbf`, mínimo de rodadas intercaladas:
+
+| arquivo | registros | saída | 2.0.2 | novo | ganho |
+| --- | --- | --- | --- | --- | --- |
+| `RDAC2401.dbc` (fixture) | 4.315 | 2,9 MB | 82,9 ms | 42,5 ms | 1,95x |
+| `DNAC2023.dbc` | 14.473 | 3,1 MB | 110,5 ms | 45,4 ms | 2,43x |
+
+Bytes idênticos ao publicado nos dois; pico de heap igual.
+
+O `DNAC2023.dbc` não entra no repositório — o plano manda medir DBCs de fora
+por hash e métricas. SHA-256:
+`51a81b22b3c7d9da506481a93ec1353b4597bdc3f2e076a6b493f59bb8fd720b`, obtido de
+`ftp://ftp.datasus.gov.br/dissemin/publicos/SINASC/1996_/Dados/DNRES/DNAC2023.dbc`.
+
+**Critério 2 — entradas pequenas.** A pergunta não é por descompressão: as
+tabelas Huffman são construídas no escopo do módulo, uma vez por processo, e
+não há custo fixo por chamada a regredir. O custo real é o de **importar**, e
+ele é **+3,76 ms** (13,07 ms contra 16,83 ms, melhor de 9 processos limpos).
+Medido por `bench/startup-bench.mjs`.
+
+**Critério 5 — outra máquina.** Continua pendente por natureza. Os números
+acima vêm de uma VM de 2 CPUs, e é ela que outra máquina precisa contradizer.
+
+**Runner.** O encerramento por memória registrado no handoff não reproduziu em
+oito execuções, incluindo com cobertura, em Node 24 e em Node 22.23.2. Isso não
+prova que não existe; prova que não é reproduzível nas condições descritas.
+
 ### Por que não paralelizar um único DBC
 
 PKWARE DCL Implode usa uma janela LZ77 de 4 KiB. Um casamento pode depender de bytes produzidos imediatamente antes, por isso um fluxo histórico não pode ser dividido em pontos arbitrários e descompactado em paralelo.
