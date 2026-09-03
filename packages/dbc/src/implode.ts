@@ -127,7 +127,22 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 2 * 1024 * 1024 * 1024;
 export const DEFAULT_MAX_STREAM_OUTPUT_BYTES = 4 * 1024 * 1024 * 1024;
 
 export interface ImplodeDecompressOptions {
-  /** Aceita o EOF DBF 0x1a ausente, uma variação encontrada em DBCs reais. */
+  /**
+   * Aceita o EOF DBF `0x1a` ausente. **Padrão `true`.**
+   *
+   * Não é tolerância a arquivo corrompido: é uma variação normal dos DBCs que
+   * o DATASUS publica. O fixture deste próprio pacote, `RDAC2401.dbc`, produz
+   * 3.029.130 bytes onde a convenção do DBF — `recordCount * recordSize + 1` —
+   * pede 3.029.131.
+   *
+   * Um pacote que existe para ler DBC do DATASUS não pode tratar uma variação
+   * normal do seu formato-alvo como erro por omissão. Quem precisa de exatidão
+   * byte a byte passa `false` e recebe a checagem estrita.
+   *
+   * A falta de UM byte no fim também não esconde truncamento de verdade: uma
+   * entrada cortada falha antes, em `entrada truncada`, e qualquer falta maior
+   * que um byte continua sendo recusada.
+   */
   allowMissingFinalByte?: boolean;
   /** Limite do tamanho descompactado declarado. */
   maxOutputBytes?: number;
@@ -353,7 +368,7 @@ export function implodeDecompressChunks(
   const maximum = options.maxOutputBytes ?? DEFAULT_MAX_STREAM_OUTPUT_BYTES;
   validateExpectedLength(uncompressedLength, maximum);
   return new ImplodeDecoder(compressed, uncompressedLength, consume, options).run(
-    options.allowMissingFinalByte ?? false,
+    options.allowMissingFinalByte ?? true,
   );
 }
 

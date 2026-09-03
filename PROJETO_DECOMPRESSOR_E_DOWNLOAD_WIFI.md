@@ -141,7 +141,7 @@ O laboratório já contém:
 
 As alterações ainda são experimentais. A suíte anterior passou em uma execução, mas o runner Vitest apresentou encerramento nativo por memória numa execução posterior com Node 24. O typecheck passou quando executado com heap explícito. Nenhum resultado deve ser publicado como validado até o problema do runner ser isolado e a matriz em Node 22 ser executada.
 
-### Quebra de contrato a resolver antes de publicar
+### Quebra de contrato: resolvida como MINOR
 
 O `implodeDecompress` novo é estrito quanto ao byte EOF do DBF: chamado com
 `recordCount * recordSize + 1`, que é a convenção do formato, ele lança quando
@@ -151,12 +151,18 @@ decodificou.
 Isso acontece no fixture do próprio pacote — `RDAC2401.dbc` produz 3.029.130
 bytes e a convenção pede 3.029.131 —, ou seja, em arquivo real do DATASUS.
 
-A tolerância existe, mas só no `dbc.ts`, que passa `allowMissingFinalByte:
-true` por conhecer a convenção. O layering está certo; o problema é semver:
-quem chama `implodeDecompress` direto com o comprimento derivado do DBF passa
-a receber exceção. **Isto é major, não patch.** Ou a versão sai como 3.0.0 com
-a mudança documentada, ou o padrão de `allowMissingFinalByte` passa a ser
-`true` no nível cru e a estrita vira opção.
+**Resolvido invertendo o padrão:** `allowMissingFinalByte` passa a ser `true`
+também no nível cru, e a checagem estrita vira opção de quem a quiser.
+
+A razão não é evitar o major por conveniência. É que a falta do `0x1a` final
+não é corrupção — é variação normal dos DBCs que o DATASUS publica, e o fixture
+deste pacote é um deles. Um pacote que existe para ler DBC do DATASUS não pode
+recusar por omissão uma variação normal do formato-alvo.
+
+A tolerância também não esconde truncamento: entrada cortada falha antes, em
+`entrada truncada`, e qualquer falta maior que um byte continua recusada.
+`packages/dbc/test/compat-2.0.2.test.ts` trava as duas coisas, para a decisão
+não se perder.
 
 ### Por que não paralelizar um único DBC
 
