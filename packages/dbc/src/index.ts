@@ -18,11 +18,21 @@ import { readDbfRecords } from './dbf.js';
 import type { ImplodeDecompressOptions } from './implode.js';
 
 export type { DbfHeaderInfo } from './dbc.js';
-export { dbcToDbf, readDbcMetadata } from './dbc.js';
+export { dbcToDbf, dbcToDbfChunks, readDbcMetadata } from './dbc.js';
 export type { DbfField, DbfHeader, DbfRecord, DbfValue, ReadDbfOptions } from './dbf.js';
 export { readDbfHeader, readDbfRecords } from './dbf.js';
-export type { ImplodeDecompressOptions } from './implode.js';
-export { DEFAULT_MAX_OUTPUT_BYTES, implodeDecompress } from './implode.js';
+export type {
+  ImplodeChunkConsumer,
+  ImplodeChunkOptions,
+  ImplodeDecompressOptions,
+} from './implode.js';
+export {
+  DEFAULT_MAX_OUTPUT_BYTES,
+  DEFAULT_MAX_STREAM_OUTPUT_BYTES,
+  implodeDecompress,
+  implodeDecompressChunks,
+  implodeDecompressInto,
+} from './implode.js';
 
 export const VERSION = '2.0.1';
 
@@ -38,7 +48,7 @@ export const VERSION = '2.0.1';
  */
 export async function* readDbcRecords(
   dbc: Uint8Array,
-  options: ImplodeDecompressOptions & ReadDbfOptions = {},
+  options: Pick<ImplodeDecompressOptions, 'maxOutputBytes'> & ReadDbfOptions = {},
 ): AsyncIterable<DbfRecord> {
   const dbf = dbcToDbf(dbc, { maxOutputBytes: options.maxOutputBytes });
   yield* readDbfRecords(dbf, options);
