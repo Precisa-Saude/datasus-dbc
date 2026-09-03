@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
+import { describe, expect, it } from 'vitest';
 
 import { readDbcMetadata } from '../src/dbc.js';
 import { implodeDecompress, implodeDecompressChunks } from '../src/implode.js';
@@ -47,25 +48,31 @@ describe('contrato de 2.0.2', () => {
 
   it('a API incremental segue o mesmo padrão da que materializa', () => {
     let total = 0;
-    implodeDecompressChunks(compressed, comEof, (chunk) => { total += chunk.byteLength; });
+    implodeDecompressChunks(compressed, comEof, (chunk) => {
+      total += chunk.byteLength;
+    });
     expect(total).toBe(semEof);
   });
 
   it('quem pede exatidão recebe exatidão', () => {
     // A estritez continua disponível, como opção de quem quer afirmar que o
     // arquivo tem exatamente o tamanho declarado.
-    expect(() => implodeDecompress(compressed, comEof, { allowMissingFinalByte: false }))
-      .toThrow(/produziu \d+ bytes; esperado/);
+    expect(() => implodeDecompress(compressed, comEof, { allowMissingFinalByte: false })).toThrow(
+      /produziu \d+ bytes; esperado/,
+    );
   });
 
   it('faltar mais de um byte continua sendo recusado', () => {
     // O padrão tolerante não pode virar tolerância a truncamento: a diferença
     // permitida é de UM byte, o EOF, e nada além disso.
-    expect(() => implodeDecompress(compressed, comEof + 10)).toThrow(/produziu \d+ bytes; esperado/);
+    expect(() => implodeDecompress(compressed, comEof + 10)).toThrow(
+      /produziu \d+ bytes; esperado/,
+    );
   });
 
   it('entrada cortada falha antes, por truncamento, não por tolerância', () => {
-    expect(() => implodeDecompress(compressed.subarray(0, 500), comEof))
-      .toThrow(/entrada truncada/);
+    expect(() => implodeDecompress(compressed.subarray(0, 500), comEof)).toThrow(
+      /entrada truncada/,
+    );
   });
 });
