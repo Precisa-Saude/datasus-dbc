@@ -15,6 +15,7 @@ import { dbcToDbf, readDbcMetadata } from '../src/dbc.js';
 import type { DbfField } from '../src/dbf.js';
 import { readDbfHeader, readDbfRecords } from '../src/dbf.js';
 import { DEFAULT_MAX_OUTPUT_BYTES, implodeDecompress } from '../src/implode.js';
+import { readDbcRecords } from '../src/index.js';
 
 /**
  * Constrói um header DBF mínimo com 1 campo. O caller pode truncar ou
@@ -285,5 +286,29 @@ describe('implodeDecompress — entrada truncada e saída excedente', () => {
     const out = implodeDecompress(compressed, expected);
     expect(out.length).toBeLessThanOrEqual(expected);
     expect(out.length).toBeGreaterThanOrEqual(expected - 1);
+  });
+});
+
+describe('cap de saída — padrão e repasse de maxOutputBytes', () => {
+  const fixture = new Uint8Array(
+    readFileSync(fileURLToPath(new URL('./fixtures/RDAC2401.dbc', import.meta.url))),
+  );
+
+  it('padrão é 2 GiB, o limite do formato DBF', () => {
+    expect(DEFAULT_MAX_OUTPUT_BYTES).toBe(2 * 1024 * 1024 * 1024);
+  });
+
+  it('dbcToDbf repassa maxOutputBytes para a descompressão', () => {
+    expect(() => dbcToDbf(fixture, { maxOutputBytes: 1024 })).toThrow(/excede cap 1024/);
+  });
+
+  it('readDbcRecords repassa maxOutputBytes para a descompressão', async () => {
+    const iter = readDbcRecords(fixture, { maxOutputBytes: 1024 });
+    await expect(iter[Symbol.asyncIterator]().next()).rejects.toThrow(/excede cap 1024/);
+  });
+
+  it('sem opção, o fixture decodifica normalmente', async () => {
+    const first = await readDbcRecords(fixture)[Symbol.asyncIterator]().next();
+    expect(first.done).toBe(false);
   });
 });

@@ -25,7 +25,7 @@
  * Output: a complete DBF byte stream that any xBase reader can consume.
  */
 
-import { implodeDecompress } from './implode.js';
+import { implodeDecompress, type ImplodeDecompressOptions } from './implode.js';
 
 /**
  * Parsed DBF header metadata extracted from the first 32 bytes of the DBF
@@ -72,9 +72,10 @@ export function readDbcMetadata(dbc: Uint8Array): DbfHeaderInfo {
  * or fed to a DBF reader in memory (e.g. `dbffile`).
  *
  * @param dbc - raw bytes of a `.dbc` file
+ * @param options - passed to {@link implodeDecompress} (e.g. `maxOutputBytes`)
  * @returns the full decompressed DBF: header + records
  */
-export function dbcToDbf(dbc: Uint8Array): Uint8Array {
+export function dbcToDbf(dbc: Uint8Array, options: ImplodeDecompressOptions = {}): Uint8Array {
   const { headerSize, recordCount, recordSize } = readDbcMetadata(dbc);
 
   const dbfHeader = dbc.subarray(0, headerSize);
@@ -82,7 +83,7 @@ export function dbcToDbf(dbc: Uint8Array): Uint8Array {
 
   // DBF record region = N records of recordSize bytes each + 1 byte EOF (0x1A).
   const expectedRecordsSize = recordCount * recordSize + 1;
-  const records = implodeDecompress(compressed, expectedRecordsSize);
+  const records = implodeDecompress(compressed, expectedRecordsSize, options);
 
   const output = new Uint8Array(dbfHeader.length + records.length);
   output.set(dbfHeader, 0);

@@ -277,12 +277,15 @@ class ImplodeDecoder {
  * Default cap on the output buffer size (in bytes) allocated by
  * {@link implodeDecompress}. Prevents an attacker-controlled header
  * field (e.g. `recordCount * recordSize` in a malformed DBC) from
- * requesting a multi-GB allocation. Real DATASUS files are well under
- * this — the largest monthly SIA-PA for SP is ~200 MB uncompressed.
- * Override via the `maxOutputBytes` option when a legitimate use case
- * exceeds it.
+ * requesting an absurd allocation.
+ *
+ * Set to 2 GiB, the dBase/DBF format limit — the reason DATASUS splits
+ * large months into `a`, `b`, `c`… files. Real split files come close: a
+ * single SIA-PA variant for SP (`PASP2606d.dbc`, 4,109,589 records × 419
+ * bytes) decompresses to ~1.64 GB. The previous 500 MB default rejected
+ * every split SP/MG/RJ file. Override via `maxOutputBytes`.
  */
-export const DEFAULT_MAX_OUTPUT_BYTES = 500 * 1024 * 1024; // 500 MB
+export const DEFAULT_MAX_OUTPUT_BYTES = 2 * 1024 * 1024 * 1024; // 2 GiB
 
 export interface ImplodeDecompressOptions {
   /** Cap on output buffer allocation. Defaults to {@link DEFAULT_MAX_OUTPUT_BYTES}. */
