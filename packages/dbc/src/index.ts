@@ -15,12 +15,14 @@
 import { dbcToDbf } from './dbc.js';
 import type { DbfRecord, ReadDbfOptions } from './dbf.js';
 import { readDbfRecords } from './dbf.js';
+import type { ImplodeDecompressOptions } from './implode.js';
 
 export type { DbfHeaderInfo } from './dbc.js';
 export { dbcToDbf, readDbcMetadata } from './dbc.js';
 export type { DbfField, DbfHeader, DbfRecord, DbfValue, ReadDbfOptions } from './dbf.js';
 export { readDbfHeader, readDbfRecords } from './dbf.js';
-export { implodeDecompress } from './implode.js';
+export type { ImplodeDecompressOptions } from './implode.js';
+export { DEFAULT_MAX_OUTPUT_BYTES, implodeDecompress } from './implode.js';
 
 export const VERSION = '2.0.1';
 
@@ -31,12 +33,13 @@ export const VERSION = '2.0.1';
  * function is the primary entry point for consumers.
  *
  * @param dbc - raw bytes of a DATASUS `.dbc` file
- * @param options - encoding and delete-inclusion flags
+ * @param options - encoding and delete-inclusion flags, plus `maxOutputBytes`
+ *   for the decompression cap
  */
 export async function* readDbcRecords(
   dbc: Uint8Array,
-  options: ReadDbfOptions = {},
+  options: ImplodeDecompressOptions & ReadDbfOptions = {},
 ): AsyncIterable<DbfRecord> {
-  const dbf = dbcToDbf(dbc);
+  const dbf = dbcToDbf(dbc, { maxOutputBytes: options.maxOutputBytes });
   yield* readDbfRecords(dbf, options);
 }
