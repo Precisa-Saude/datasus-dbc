@@ -128,11 +128,27 @@ class ImplodeDecoder {
     this.outStream = new Uint8Array(uncompressedLength);
   }
 
+  /**
+   * Next input byte. Running out of input before the end code means the
+   * stream is truncated — blast.c aborts with "out of input" here. Without
+   * this check, `inStream[i]` past the end is `undefined`, `undefined << n`
+   * is 0, and the decoder spins forever on an endless stream of zero bits
+   * (a truncated SIA-PA download once kept a process busy for hours).
+   */
+  private nextByte(): number {
+    if (this.inPtr >= this.inStream.length) {
+      throw new Error(
+        `DCL Implode: entrada truncada — ${this.inStream.length} bytes consumidos sem o código de fim`,
+      );
+    }
+    return this.inStream[this.inPtr++]!;
+  }
+
   /** Read `need` bits (1..13) LSB-first from the input stream. */
   private bits(need: number): number {
     let val = this.bitbuf;
     while (this.bitcnt < need) {
-      val |= this.inStream[this.inPtr++]! << this.bitcnt;
+      val |= this.nextByte() << this.bitcnt;
       this.bitcnt += 8;
     }
     this.bitbuf = val >> need;
@@ -172,13 +188,20 @@ class ImplodeDecoder {
       }
       left = MAXBITS + 1 - len;
       if (left === 0) break;
-      bitbuf = this.inStream[this.inPtr++]!;
+      bitbuf = this.nextByte();
       if (left > 8) left = 8;
     }
     return -9;
   }
 
   private flushWindow(): void {
+    // Typed-array writes past the end are silently dropped, so overflowing
+    // the declared size would otherwise go unnoticed.
+    if (this.outPtr + this.next > this.outStream.length) {
+      throw new Error(
+        `DCL Implode: saída excede o tamanho declarado (${this.outStream.length} bytes)`,
+      );
+    }
     for (let i = 0; i < this.next; i++) {
       this.outStream[this.outPtr++] = this.window[i]!;
     }
