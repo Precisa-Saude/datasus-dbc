@@ -1,3 +1,9 @@
+## [2.0.4](https://github.com/Precisa-Saude/datasus-dbc/compare/v2.0.3...v2.0.4) (2026-10-02)
+
+### Bug Fixes
+
+* cap de saída padrão passa a 2 GiB e aceita maxOutputBytes ([#24](https://github.com/Precisa-Saude/datasus-dbc/issues/24)) ([7cf4b76](https://github.com/Precisa-Saude/datasus-dbc/commit/7cf4b76fcaac4d9c4b87453ed74a0ae6b35305a9))
+
 ## [2.0.3](https://github.com/Precisa-Saude/datasus-dbc/compare/v2.0.2...v2.0.3) (2026-10-02)
 
 ### Bug Fixes
