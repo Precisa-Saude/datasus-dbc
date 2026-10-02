@@ -6,6 +6,9 @@
  * que só exercitam com buffers construídos à mão.
  */
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import { dbcToDbf, readDbcMetadata } from '../src/dbc.js';
@@ -247,5 +250,40 @@ describe('implodeDecompress — allocation guard', () => {
     expect(() => implodeDecompress(new Uint8Array(16), 2000, { maxOutputBytes: 1024 })).toThrow(
       /excede cap 1024/,
     );
+  });
+});
+
+describe('implodeDecompress — entrada truncada e saída excedente', () => {
+  // Fixture real (SIH-RD AC jan/2024). Cortes em vários pontos simulam um
+  // download interrompido; antes da correção, o decoder lia zeros além do
+  // fim e girava para sempre em vez de falhar.
+  const fixture = new Uint8Array(
+    readFileSync(fileURLToPath(new URL('./fixtures/RDAC2401.dbc', import.meta.url))),
+  );
+  const { headerSize, recordCount, recordSize } = readDbcMetadata(fixture);
+  const compressed = fixture.subarray(headerSize + 4);
+  const expected = recordCount * recordSize + 1;
+
+  it.each([0.1, 0.5, 0.9, 0.999])('falha rápido com o DBC cortado em %d', (fraction) => {
+    const cut = fixture.subarray(0, headerSize + 4 + Math.floor(compressed.length * fraction));
+    expect(() => dbcToDbf(cut)).toThrow(/entrada truncada/);
+  });
+
+  it('falha quando o stream comprimido termina sem nenhum byte de payload', () => {
+    expect(() => implodeDecompress(new Uint8Array(0), 10)).toThrow(/entrada truncada/);
+  });
+
+  it('falha quando o stream produz mais bytes que o tamanho declarado', () => {
+    expect(() => implodeDecompress(compressed, Math.floor(expected / 2))).toThrow(
+      /excede o tamanho declarado/,
+    );
+  });
+
+  it('o arquivo íntegro continua decodificando dentro do tamanho declarado', () => {
+    // O tamanho declarado inclui o byte de EOF (0x1A) do DBF, que nem todo
+    // stream traz; a saída pode ficar 1 byte abaixo, nunca acima.
+    const out = implodeDecompress(compressed, expected);
+    expect(out.length).toBeLessThanOrEqual(expected);
+    expect(out.length).toBeGreaterThanOrEqual(expected - 1);
   });
 });
