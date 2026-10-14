@@ -25,7 +25,15 @@
  * Output: a complete DBF byte stream that any xBase reader can consume.
  */
 
-import { implodeDecompress, type ImplodeDecompressOptions } from './implode.js';
+import {
+  DEFAULT_MAX_OUTPUT_BYTES,
+  DEFAULT_MAX_STREAM_OUTPUT_BYTES,
+  type ImplodeChunkConsumer,
+  type ImplodeChunkOptions,
+  implodeDecompressChunks,
+  implodeDecompressInto,
+  type ImplodeDecompressOptions,
+} from './implode.js';
 
 /**
  * Parsed DBF header metadata extracted from the first 32 bytes of the DBF
@@ -72,7 +80,6 @@ export function readDbcMetadata(dbc: Uint8Array): DbfHeaderInfo {
  * or fed to a DBF reader in memory (e.g. `dbffile`).
  *
  * @param dbc - raw bytes of a `.dbc` file
- * @param options - passed to {@link implodeDecompress} (e.g. `maxOutputBytes`)
  * @returns the full decompressed DBF: header + records
  */
 export function dbcToDbf(dbc: Uint8Array, options: ImplodeDecompressOptions = {}): Uint8Array {
@@ -83,10 +90,51 @@ export function dbcToDbf(dbc: Uint8Array, options: ImplodeDecompressOptions = {}
 
   // DBF record region = N records of recordSize bytes each + 1 byte EOF (0x1A).
   const expectedRecordsSize = recordCount * recordSize + 1;
-  const records = implodeDecompress(compressed, expectedRecordsSize, options);
-
-  const output = new Uint8Array(dbfHeader.length + records.length);
+  assertRecordRegionFits(expectedRecordsSize, options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES);
+  const output = new Uint8Array(dbfHeader.length + expectedRecordsSize);
   output.set(dbfHeader, 0);
-  output.set(records, dbfHeader.length);
-  return output;
+  const recordsWritten = implodeDecompressInto(compressed, output.subarray(dbfHeader.length), {
+    allowMissingFinalByte: true,
+    ...options,
+  });
+  return recordsWritten === expectedRecordsSize
+    ? output
+    : output.slice(0, dbfHeader.length + recordsWritten);
+}
+
+/**
+ * Entrega um DBC como blocos DBF sem materializar o arquivo descompactado.
+ * O cabeçalho é emitido primeiro e os registros seguem em blocos de até 4 KiB.
+ */
+export function dbcToDbfChunks(
+  dbc: Uint8Array,
+  consume: ImplodeChunkConsumer,
+  options: ImplodeChunkOptions = {},
+): number {
+  const { headerSize, recordCount, recordSize } = readDbcMetadata(dbc);
+  const expectedRecordsSize = recordCount * recordSize + 1;
+  assertRecordRegionFits(
+    expectedRecordsSize,
+    options.maxOutputBytes ?? DEFAULT_MAX_STREAM_OUTPUT_BYTES,
+  );
+
+  consume(dbc.subarray(0, headerSize), 0);
+  const recordsWritten = implodeDecompressChunks(
+    dbc.subarray(headerSize + 4),
+    expectedRecordsSize,
+    (chunk, offset) => consume(chunk, headerSize + offset),
+    { allowMissingFinalByte: true, ...options },
+  );
+  return headerSize + recordsWritten;
+}
+
+function assertRecordRegionFits(bytes: number, maximum: number): void {
+  if (!Number.isSafeInteger(maximum) || maximum < 0) {
+    throw new Error(`dbcToDbf: maxOutputBytes inválido (${maximum})`);
+  }
+  if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > maximum) {
+    throw new Error(
+      `dbcToDbf: região de registros de ${bytes} bytes excede cap ${maximum} (cabeçalho DBC suspeito ou ajuste maxOutputBytes)`,
+    );
+  }
 }

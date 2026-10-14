@@ -252,6 +252,38 @@ describe('implodeDecompress — allocation guard', () => {
       /excede cap 1024/,
     );
   });
+
+  it('separa "inválido" de "excede cap": são problemas diferentes', () => {
+    // Uma mensagem só para os dois casos apagaria a distinção que o chamador
+    // usa para decidir: comprimento inválido é erro de programação; acima do
+    // cap é cabeçalho DBC suspeito ou limite curto demais, e só o segundo se
+    // resolve ajustando `maxOutputBytes`. A fusão também tornaria vácuo o teste
+    // acima, porque /inválido/ passaria a casar com os dois.
+    expect(() => implodeDecompress(new Uint8Array(16), -1)).toThrow(/inválido/);
+    expect(() => implodeDecompress(new Uint8Array(16), -1)).not.toThrow(/excede cap/);
+
+    const acimaDoCap = DEFAULT_MAX_OUTPUT_BYTES + 1;
+    expect(() => implodeDecompress(new Uint8Array(16), acimaDoCap)).toThrow(/excede cap/);
+    expect(() => implodeDecompress(new Uint8Array(16), acimaDoCap)).not.toThrow(/inválido/);
+  });
+
+  it('recusa maxOutputBytes que não é um número de bytes', () => {
+    // Guarda que o Codex acrescentou e vale manter: validar a própria opção
+    // evita um cap que não significa nada.
+    for (const cap of [-1, Number.NaN, 1.5, Number.POSITIVE_INFINITY]) {
+      expect(() => implodeDecompress(new Uint8Array(16), 10, { maxOutputBytes: cap })).toThrow(
+        /maxOutputBytes inválido/,
+      );
+    }
+  });
+
+  it('cap zero é limite degenerado, não opção inválida', () => {
+    // Zero é coerente: qualquer saída não vazia o excede. Recusá-lo como
+    // "inválido" trocaria uma mensagem exata por uma genérica.
+    expect(() => implodeDecompress(new Uint8Array(16), 10, { maxOutputBytes: 0 })).toThrow(
+      /excede cap 0/,
+    );
+  });
 });
 
 describe('implodeDecompress — entrada truncada e saída excedente', () => {
