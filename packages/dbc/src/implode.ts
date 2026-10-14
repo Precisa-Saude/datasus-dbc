@@ -246,7 +246,7 @@ class ImplodeDecoder {
 
   private assertFits(additional: number): void {
     if (this.produced + this.next + additional > this.expectedLength) {
-      throw new Error('DCL Implode: saída excedeu o tamanho declarado');
+      throw new Error('DCL Implode: saída excede o tamanho declarado');
     }
   }
 

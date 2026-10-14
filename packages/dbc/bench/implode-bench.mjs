@@ -28,10 +28,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const RODADAS = Number(process.argv[2] ?? 7);
 // Aceita um DBC de fora por DBC_FIXTURE. Arquivos de fora NÃO entram no
 // repositório: o plano manda medi-los por hash e métricas, e é o que se faz.
-const FIXTURE = process.env.DBC_FIXTURE
-  ?? fileURLToPath(new URL('../test/fixtures/RDAC2401.dbc', import.meta.url));
-const PUBLICADO = process.env.DBC_PUBLICADO
-  ?? 'C:/projetos/tabwin-web/node_modules/@precisa-saude/datasus-dbc/dist/index.js';
+const FIXTURE =
+  process.env.DBC_FIXTURE ??
+  fileURLToPath(new URL('../test/fixtures/RDAC2401.dbc', import.meta.url));
+const PUBLICADO =
+  process.env.DBC_PUBLICADO ??
+  'C:/projetos/tabwin-web/node_modules/@precisa-saude/datasus-dbc/dist/index.js';
 
 const { readDbcMetadata, dbcToDbf } = await import('../dist/index.js');
 const { dbcToDbf: publicado } = await import(pathToFileURL(PUBLICADO).href);
@@ -64,12 +66,15 @@ function medir(executar) {
 // --- critério 1: os mesmos bytes -------------------------------------------
 const saidaNova = dbcToDbf(dbc);
 const saidaAntiga = publicado(dbc);
-const iguais = saidaNova.byteLength === saidaAntiga.byteLength
-  && saidaNova.every((byte, indice) => byte === saidaAntiga[indice]);
+const iguais =
+  saidaNova.byteLength === saidaAntiga.byteLength &&
+  saidaNova.every((byte, indice) => byte === saidaAntiga[indice]);
 
 console.log(`fixture: ${FIXTURE.split(/[\\/]/).pop()}`);
-console.log(`  ${meta.recordCount} registros · ${(dbc.byteLength / 1024).toFixed(0)} KB`
-  + ` -> ${(saidaNova.byteLength / 1048576).toFixed(1)} MB`);
+console.log(
+  `  ${meta.recordCount} registros · ${(dbc.byteLength / 1024).toFixed(0)} KB` +
+    ` -> ${(saidaNova.byteLength / 1048576).toFixed(1)} MB`,
+);
 console.log(`\n1. bytes identicos ao publicado: ${iguais ? 'SIM' : 'NAO - nada mais importa'}`);
 if (!iguais) process.exit(1);
 
@@ -78,15 +83,24 @@ console.log(`\n${RODADAS} rodadas, resultado pelo minimo:\n`);
 const antigo = medir(() => publicado(dbc));
 const novo = medir(() => dbcToDbf(dbc));
 
-for (const [nome, r] of [['2.0.2 publicado', antigo], ['nucleo novo', novo]]) {
-  console.log(`  ${nome.padEnd(18)} ${r.melhor.toFixed(1).padStart(6)} ms`
-    + ` | mediana ${r.mediana.toFixed(1).padStart(6)} ms`
-    + ` | heap +${r.picoMb.toFixed(1)} MB`);
+for (const [nome, r] of [
+  ['2.0.2 publicado', antigo],
+  ['nucleo novo', novo],
+]) {
+  console.log(
+    `  ${nome.padEnd(18)} ${r.melhor.toFixed(1).padStart(6)} ms` +
+      ` | mediana ${r.mediana.toFixed(1).padStart(6)} ms` +
+      ` | heap +${r.picoMb.toFixed(1)} MB`,
+  );
 }
 
 const ganho = antigo.melhor / novo.melhor;
-console.log(`\n3. ${ganho >= 1 ? `${ganho.toFixed(2)}x mais rapido` : `${(1 / ganho).toFixed(2)}x MAIS LENTO`}`);
-console.log(`4. pico de heap: ${novo.picoMb <= antigo.picoMb + 0.5 ? 'igual ou menor' : `MAIOR (+${(novo.picoMb - antigo.picoMb).toFixed(1)} MB)`}`);
+console.log(
+  `\n3. ${ganho >= 1 ? `${ganho.toFixed(2)}x mais rapido` : `${(1 / ganho).toFixed(2)}x MAIS LENTO`}`,
+);
+console.log(
+  `4. pico de heap: ${novo.picoMb <= antigo.picoMb + 0.5 ? 'igual ou menor' : `MAIOR (+${(novo.picoMb - antigo.picoMb).toFixed(1)} MB)`}`,
+);
 
 // --- critério 2: entradas pequenas -----------------------------------------
 // Medido por startup-bench.mjs, e o lugar certo é a importação: as tabelas

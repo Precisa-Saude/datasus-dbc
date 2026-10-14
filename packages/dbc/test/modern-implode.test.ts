@@ -114,7 +114,7 @@ describe('núcleo DCL moderno', () => {
     }
 
     expect(() => implodeDecompress(compressed, expectedRecordsSize - 100)).toThrow(
-      /excedeu o tamanho declarado/,
+      /excede o tamanho declarado/,
     );
     expect(() => implodeDecompress(compressed, expectedRecordsSize + 100)).toThrow(
       /saída produziu/,
@@ -139,7 +139,7 @@ describe('streaming do envelope DBC', () => {
       dbcToDbfChunks(fixture, () => calls++, {
         maxOutputBytes: expectedRecordsSize - 1,
       }),
-    ).toThrow(/acima do limite/);
+    ).toThrow(/excede cap/);
     expect(calls).toBe(0);
   });
 });

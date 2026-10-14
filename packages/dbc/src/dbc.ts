@@ -134,7 +134,7 @@ function assertRecordRegionFits(bytes: number, maximum: number): void {
   }
   if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > maximum) {
     throw new Error(
-      `dbcToDbf: região de registros inválida ou acima do limite (${bytes}; cap ${maximum})`,
+      `dbcToDbf: região de registros de ${bytes} bytes excede cap ${maximum} (cabeçalho DBC suspeito ou ajuste maxOutputBytes)`,
     );
   }
 }
